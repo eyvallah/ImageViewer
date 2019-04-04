@@ -21,6 +21,15 @@ open class VideoScrubber: UIControl {
     fileprivate var periodicObserver: AnyObject?
     fileprivate var stoppedSlidingTimeStamp = Date()
 
+    private var timeLabelTextAttributes: [NSAttributedString.Key : Any] {
+        var attributes = [NSAttributedString.Key : Any]()
+        attributes[.font] = UIFont.systemFont(ofSize: 12)
+        if let tintColor = self.tintColor {
+            attributes[.foregroundColor] = tintColor
+        }
+        return attributes
+    }
+
     weak var player: AVPlayer? {
 
         willSet {
@@ -106,7 +115,7 @@ open class VideoScrubber: UIControl {
         scrubber.maximumValue = 1000
         scrubber.value = 0
 
-        timeLabel.attributedText = NSAttributedString(string: "--:--", attributes: [NSAttributedString.Key.foregroundColor : self.tintColor, NSAttributedString.Key.font : UIFont.systemFont(ofSize: 12)])
+        timeLabel.attributedText = NSAttributedString(string: "--:--", attributes: timeLabelTextAttributes)
         timeLabel.textAlignment =  .center
 
         playButton.addTarget(self, action: #selector(play), for: UIControl.Event.touchUpInside)
@@ -238,10 +247,10 @@ open class VideoScrubber: UIControl {
 
             let timeString = stringFromTimeInterval(currentTime as TimeInterval)
 
-            timeLabel.attributedText = NSAttributedString(string: timeString, attributes: [NSAttributedString.Key.foregroundColor : self.tintColor, NSAttributedString.Key.font : UIFont.systemFont(ofSize: 12)])
+            timeLabel.attributedText = NSAttributedString(string: timeString, attributes: timeLabelTextAttributes)
         }
         else {
-            timeLabel.attributedText = NSAttributedString(string: "--:--", attributes: [NSAttributedString.Key.foregroundColor : self.tintColor, NSAttributedString.Key.font : UIFont.systemFont(ofSize: 12)])
+            timeLabel.attributedText = NSAttributedString(string: "--:--", attributes: timeLabelTextAttributes)
         }
     }
 
@@ -258,7 +267,7 @@ open class VideoScrubber: UIControl {
     }
     
     override open func tintColorDidChange() {
-        timeLabel.attributedText = NSAttributedString(string: "--:--", attributes: [NSAttributedString.Key.foregroundColor : self.tintColor, NSAttributedString.Key.font : UIFont.systemFont(ofSize: 12)])
+        timeLabel.attributedText = NSAttributedString(string: "--:--", attributes: timeLabelTextAttributes)
         
         let playButtonImage = playButton.imageView?.image?.withRenderingMode(UIImage.RenderingMode.alwaysTemplate)
         playButton.imageView?.tintColor = self.tintColor

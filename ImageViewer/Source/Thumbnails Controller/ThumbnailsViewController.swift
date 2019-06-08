@@ -116,16 +116,6 @@ class ThumbnailsViewController: UICollectionViewController, UICollectionViewDele
                 }
             }
 
-        case .video(let fetchImageBlock, _):
-
-            fetchImageBlock() { image in
-
-                if let image = image {
-
-                    cell.imageView.image = image
-                }
-            }
-
         case .custom(let fetchImageBlock, _):
 
             fetchImageBlock() { image in

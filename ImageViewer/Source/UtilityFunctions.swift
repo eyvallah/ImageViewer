@@ -7,7 +7,25 @@
 //
 
 import UIKit
-import AVFoundation
+
+/// implementation of AVMakeRect of AVFoundation
+
+private func IVMakeRect(aspectRatio: CGSize, insideRect boundingRect: CGRect) -> CGRect {
+    let width = boundingRect.width
+    let height = boundingRect.height
+    
+    let wRatio = width / aspectRatio.width
+    let hRatio = height / aspectRatio.height
+    if wRatio < hRatio {
+        let newHeight = aspectRatio.height * wRatio
+        let newY = boundingRect.minY + (height - newHeight) / 2
+        return CGRect(x: boundingRect.minX, y: newY, width: width, height: newHeight)
+    } else {
+        let newWidth = aspectRatio.width * hRatio
+        let newX = boundingRect.minX + (width - newWidth) / 2
+        return CGRect(x: newX, y: boundingRect.minY, width: newWidth, height: height)
+    }
+}
 
 /// returns a size that aspect-fits into the bounding size. Example -> We have some view of
 /// certain size and the question is, what would have to be its size, so that it would fit
@@ -15,12 +33,12 @@ import AVFoundation
 
 func aspectFitSize(forContentOfSize contentSize: CGSize, inBounds bounds: CGSize) -> CGSize {
 
-    return AVMakeRect(aspectRatio: contentSize, insideRect: CGRect(origin: CGPoint.zero, size: bounds)).size
+    return IVMakeRect(aspectRatio: contentSize, insideRect: CGRect(origin: CGPoint.zero, size: bounds)).size
 }
 
 func aspectFitContentSize(forBoundingSize boundingSize: CGSize, contentSize: CGSize) -> CGSize {
 
-    return AVMakeRect(aspectRatio: contentSize, insideRect: CGRect(origin: CGPoint.zero, size: boundingSize)).size
+    return IVMakeRect(aspectRatio: contentSize, insideRect: CGRect(origin: CGPoint.zero, size: boundingSize)).size
 }
 
 func aspectFillZoomScale(forBoundingSize boundingSize: CGSize, contentSize: CGSize) -> CGFloat {

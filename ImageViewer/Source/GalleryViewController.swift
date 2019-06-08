@@ -7,7 +7,6 @@
 //
 
 import UIKit
-import AVFoundation
 
 open class GalleryViewController: UIPageViewController, ItemControllerDelegate {
 
@@ -21,7 +20,6 @@ open class GalleryViewController: UIPageViewController, ItemControllerDelegate {
     fileprivate var seeAllCloseButton: UIButton? = nil
     fileprivate var thumbnailsButton: UIButton? = UIButton.thumbnailsButton()
     fileprivate var deleteButton: UIButton? = UIButton.deleteButton()
-    fileprivate let scrubber = VideoScrubber()
 
     fileprivate weak var initialItemController: ItemController?
 
@@ -74,7 +72,6 @@ open class GalleryViewController: UIPageViewController, ItemControllerDelegate {
         self.currentIndex = startIndex
         self.itemsDelegate = itemsDelegate
         self.itemsDataSource = itemsDataSource
-        var continueNextVideoOnFinish: Bool = false
 
         ///Only those options relevant to the paging GalleryViewController are explicitly handled here, the rest is handled by ItemViewControllers
         for item in configuration {
@@ -105,9 +102,8 @@ open class GalleryViewController: UIPageViewController, ItemControllerDelegate {
             case .blurDismissDelay(let delay):                  overlayView.blurDismissDelay = delay
             case .colorDismissDuration(let duration):           overlayView.colorDismissDuration = duration
             case .colorDismissDelay(let delay):                 overlayView.colorDismissDelay = delay
-            case .continuePlayVideoOnEnd(let enabled):          continueNextVideoOnFinish = enabled
             case .seeAllCloseLayout(let layout):                seeAllCloseLayout = layout
-            case .videoControlsColor(let color):                scrubber.tintColor = color
+
             case .closeButtonMode(let buttonMode):
 
                 switch buttonMode {
@@ -148,7 +144,7 @@ open class GalleryViewController: UIPageViewController, ItemControllerDelegate {
             }
         }
 
-        pagingDataSource = GalleryPagingDataSource(itemsDataSource: itemsDataSource, displacedViewsDataSource: displacedViewsDataSource, scrubber: scrubber, configuration: configuration)
+        pagingDataSource = GalleryPagingDataSource(itemsDataSource: itemsDataSource, displacedViewsDataSource: displacedViewsDataSource, configuration: configuration)
 
         super.init(transitionStyle: UIPageViewController.TransitionStyle.scroll,
                    navigationOrientation: UIPageViewController.NavigationOrientation.horizontal,
@@ -172,21 +168,12 @@ open class GalleryViewController: UIPageViewController, ItemControllerDelegate {
         UIApplication.applicationWindow.windowLevel = (statusBarHidden) ? UIWindow.Level.statusBar + 1 : UIWindow.Level.normal
 
         NotificationCenter.default.addObserver(self, selector: #selector(GalleryViewController.rotate), name: UIDevice.orientationDidChangeNotification, object: nil)
-
-        if continueNextVideoOnFinish {
-            NotificationCenter.default.addObserver(self, selector: #selector(didEndPlaying), name: NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil)
-        }
     }
 
     deinit {
 
         NotificationCenter.default.removeObserver(self)
     }
-
-    @objc func didEndPlaying() {
-        page(toIndex: currentIndex+1)
-    }
-
 
     fileprivate func configureOverlayView() {
 
@@ -240,12 +227,6 @@ open class GalleryViewController: UIPageViewController, ItemControllerDelegate {
         }
     }
 
-    fileprivate func configureScrubber() {
-
-        scrubber.alpha = 0
-        self.view.addSubview(scrubber)
-    }
-
     open override func viewDidLoad() {
         super.viewDidLoad()
 
@@ -260,7 +241,6 @@ open class GalleryViewController: UIPageViewController, ItemControllerDelegate {
         configureCloseButton()
         configureThumbnailsButton()
         configureDeleteButton()
-        configureScrubber()
 
         self.view.clipsToBounds = false
     }
@@ -323,7 +303,6 @@ open class GalleryViewController: UIPageViewController, ItemControllerDelegate {
         layoutButton(deleteButton, layout: deleteLayout)
         layoutHeaderView()
         layoutFooterView()
-        layoutScrubber()
     }
 
     private var defaultInsets: UIEdgeInsets {
@@ -414,13 +393,6 @@ open class GalleryViewController: UIPageViewController, ItemControllerDelegate {
             footer.autoresizingMask = [.flexibleTopMargin, .flexibleLeftMargin]
             footer.frame.origin = CGPoint(x: self.view.bounds.width - marginRight - footer.bounds.width, y: self.view.bounds.height - footer.bounds.height - marginBottom - defaultInsets.bottom)
         }
-    }
-
-    fileprivate func layoutScrubber() {
-
-        scrubber.bounds = CGRect(origin: CGPoint.zero, size: CGSize(width: self.view.bounds.width, height: 40))
-        scrubber.center = self.view.boundsCenter
-        scrubber.frame.origin.y = (footerView?.frame.origin.y ?? self.view.bounds.maxY) - scrubber.bounds.height
     }
 
     @objc fileprivate func deleteItem() {
@@ -568,7 +540,6 @@ open class GalleryViewController: UIPageViewController, ItemControllerDelegate {
             self?.closeButton?.alpha = 0.0
             self?.thumbnailsButton?.alpha = 0.0
             self?.deleteButton?.alpha = 0.0
-            self?.scrubber.alpha = 0.0
 
             }, completion: { [weak self] done in
 
@@ -612,36 +583,13 @@ open class GalleryViewController: UIPageViewController, ItemControllerDelegate {
             self?.closeButton?.alpha = targetAlpha
             self?.thumbnailsButton?.alpha = targetAlpha
             self?.deleteButton?.alpha = targetAlpha
-
-            if let _ = self?.viewControllers?.first as? VideoViewController {
-
-                UIView.animate(withDuration: 0.3, animations: { [weak self] in
-
-                    self?.scrubber.alpha = targetAlpha
-                })
-            }
         })
     }
 
     public func itemControllerWillAppear(_ controller: ItemController) {
-
-        if let videoController = controller as? VideoViewController {
-
-            scrubber.player = videoController.player
-        }
     }
 
     public func itemControllerWillDisappear(_ controller: ItemController) {
-
-        if let _ = controller as? VideoViewController {
-
-            scrubber.player = nil
-
-            UIView.animate(withDuration: 0.3, animations: { [weak self] in
-
-                self?.scrubber.alpha = 0
-            })
-        }
     }
 
     public func itemControllerDidAppear(_ controller: ItemController) {
@@ -651,16 +599,6 @@ open class GalleryViewController: UIPageViewController, ItemControllerDelegate {
         self.headerView?.sizeToFit()
         self.footerView?.sizeToFit()
 
-        if let videoController = controller as? VideoViewController {
-            scrubber.player = videoController.player
-            if scrubber.alpha == 0 && decorationViewsHidden == false {
-
-                UIView.animate(withDuration: 0.3, animations: { [weak self] in
-
-                    self?.scrubber.alpha = 1
-                })
-            }
-        }
     }
 
     open func itemControllerDidSingleTap(_ controller: ItemController) {
@@ -675,11 +613,6 @@ open class GalleryViewController: UIPageViewController, ItemControllerDelegate {
         case (_ as ImageViewController, let item as UIImageView):
             guard let image = item.image else { return }
             let activityVC = UIActivityViewController(activityItems: [image], applicationActivities: nil)
-            self.present(activityVC, animated: true)
-
-        case (_ as VideoViewController, let item as VideoView):
-            guard let videoUrl = ((item.player?.currentItem?.asset) as? AVURLAsset)?.url else { return }
-            let activityVC = UIActivityViewController(activityItems: [videoUrl], applicationActivities: nil)
             self.present(activityVC, animated: true)
 
         default:  return
@@ -697,10 +630,6 @@ open class GalleryViewController: UIPageViewController, ItemControllerDelegate {
             deleteButton?.alpha = alpha
             headerView?.alpha = alpha
             footerView?.alpha = alpha
-
-            if controller is VideoViewController {
-                scrubber.alpha = alpha
-            }
         }
 
         self.overlayView.blurringView.alpha = 1 - distance
